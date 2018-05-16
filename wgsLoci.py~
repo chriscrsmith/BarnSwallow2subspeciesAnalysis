@@ -15,6 +15,8 @@ sys.stderr.write("\n\n" +
                  "\n\n")
 
 
+
+
 ###################
 # preliminary steps 
 ###################
@@ -31,7 +33,7 @@ minSamplesEachPop = int(sys.argv[8]) # minimum samples covered in each pop to ou
 minimumLocusLength = int(sys.argv[9]) # the minimum locus length. Toggle this to see how it affects the total length of outputted sequence
 maximumLocusLength = int(sys.argv[10]) # we're not including intra-locus recombination in simulations, so need to keep them short
 minDistanceBetweenLoci = int(sys.argv[11]) # loci are simulated entirely independently, so need to insure the observed loci are independent
-outputType = sys.argv[12] # what type of output. Options: "locusLengths", "fasta", "locfile", "missing", "vcf"
+outputType = sys.argv[12] # what type of output. Options: "locusLengths", "fasta", "locfile", "missingData", "vcf"
 
 # variable initialization
 minSnpQUAL = 0 # minimum QUAL in .vcf to include a snp. I decided to role without this filter (that's why it's 0)
@@ -64,9 +66,8 @@ def getSnps(vcfFile, sampleIndices, scaf, previousLine):
         for line in vcfFile:
             newline = line.strip().split()
             if newline[0] == scaf:
-                if float(newline[5]) >= minSnpQUAL: 
-
-                    # here, checking for multiple alts, and then saving the alle frequencies (this gets complicated)
+                if float(newline[5]) >= minSnpQUAL:
+                    # here, checking for multiple alts, and then saving the allele frequencies (this gets complicated)
                     if len(newline[4]) > 1:
                         genotypeData = newline[9:]
                         alleleCollection = []
@@ -79,7 +80,7 @@ def getSnps(vcfFile, sampleIndices, scaf, previousLine):
                         AC2 = alleleCollection.count("2")
                         AC3 = alleleCollection.count("3")
                         AFs = [AC0,AC1,AC2,AC3]
-                        newline[2] = AFs # clever! this is storing extra AF information in the VCF info where there was a blank column 
+                        newline[2] = AFs # this is storing extra AF information in the VCF info where there was a blank column 
                     data[newline[1]] = newline # read in the whole line, because looking at all samples, sometimes
             else:
                 if newline[0] in goodScaffolds:
@@ -117,9 +118,10 @@ def checkRead(r):
         # 10. PCR duplicate
         # 11. supplementary alignment
         # going to pretend the last several don't happen without a "segment unmapped" flag too
-        if ("H" not in cigar) and ("S" not in cigar): # these are (hard, or soft) clipped reads. Other cigar options were not found in our reads
+        if bits[1] == 1 and bits[2] == 0: # there don't appear to be any obscure bit flags in our reads
+            if ("H" not in cigar) and ("S" not in cigar): # these are (hard, or soft) clipped reads. Other cigar options were not found in our reads
                 #if ("D" not in cigar) and ("I" not in cigar): # indels
-            verdict = "good!"
+                verdict = "good!"
     return verdict
 
 
@@ -140,7 +142,7 @@ def getSamData(sams, scaf, lastLinesRead):
                     if checkRead(newline) == "good!":
                         data[s].append(newline)
                 else:
-                    break 
+                    break
             if newline[2] in goodScaffolds: 
                 newLinesRead.append(newline)
             else: # want to keep parsing until reach a line in good scaffolds list 
@@ -148,7 +150,7 @@ def getSamData(sams, scaf, lastLinesRead):
                     newline = line.strip().split()
                     if newline[2] in goodScaffolds:
                         break
-                newLinesRead.append(line.strip().split()) 
+                newLinesRead.append(line.strip().split())
         else: # the current position in this samples sam file is not the right scaffold, i.e. sample doesn't have reads on the scaffold
             data.append(None) # placeholder for sample without data on this scaffold
             newLinesRead.append(lastLinesRead[s])
@@ -259,7 +261,7 @@ while newline[0:2] == "##" :
 bamList = newline.strip().split()[9:] # header
 sampleVCFindices = {} # indices in the (large) bam list for the (smaller number of) samples you're analyzing
 for position in range(len(bamList)):
-    newID = bamList[position].split('.')[0].split("/")[-1]
+    newID = bamList[position].split('.')[0].split("/")[-1] 
     if newID in samples:
         sampleVCFindices[newID] = position+9 # saving positions of each sample in the vcf, +9 for snp info fields
 lastVcfLineRead = vcf.readline().strip().split() # need a default value for this variable, the first snp line
@@ -301,6 +303,7 @@ with open(paralogThresholdPath, "r") as infile:   # these thresholds were obtain
 ##########
 for scaffold in scaffoldOrder:
     if scaffold in goodScaffolds:
+
         # read in snp info
         snps, lastVcfLineRead = getSnps(vcf, sampleVCFindices, scaffold, lastVcfLineRead)
 
@@ -369,10 +372,13 @@ for scaffold in scaffoldOrder:
                                         1/0
                                     alignmentMatrix[sample][refPosition+p-1] = genotype 
 
+                                # if not in vcf, just assign the reference allele    
+                                # this is obviously a bad idea in general, because the ref allele could be rare, but only looking at covered regions
                                 else:
                                     alignmentMatrix[sample][refPosition+p-1] = reference[scaffold][refPosition+p-1]*2 # diploid *2
 
 
+                                    
         # now that we have the coverage and genotype saved for each sample at each position on the scaffold, 
         # go through and find regions with good coverage
         newRegion = True # default
@@ -497,13 +503,13 @@ for scaffold in scaffoldOrder:
                                     if outputType == "fasta":
                                         seq1[posCounter] = reference[scaffold][position] # giving non-"N" placeholder to fasta for ms-conversion
                                         seq2[posCounter] = reference[scaffold][position]
-                                    elif outputType == "missing":
+                                    elif outputType == "missingData":
                                         pass # leaving as Ns
                             else:
                                 if outputType == "fasta":
                                     seq1[posCounter] = reference[scaffold][position]
                                     seq2[posCounter] = reference[scaffold][position]
-                                elif outputType == "missing":
+                                elif outputType == "missingData":
                                     pass # if outputting for missing data analysis, then leave the N's in.
                             posCounter += 1
                         if allMissingData == False: # if at least one base is covered for this sample

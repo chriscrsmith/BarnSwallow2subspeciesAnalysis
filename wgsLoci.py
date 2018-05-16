@@ -33,7 +33,7 @@ minSamplesEachPop = int(sys.argv[8]) # minimum samples covered in each pop to ou
 minimumLocusLength = int(sys.argv[9]) # the minimum locus length. Toggle this to see how it affects the total length of outputted sequence
 maximumLocusLength = int(sys.argv[10]) # we're not including intra-locus recombination in simulations, so need to keep them short
 minDistanceBetweenLoci = int(sys.argv[11]) # loci are simulated entirely independently, so need to insure the observed loci are independent
-outputType = sys.argv[12] # what type of output. Options: "locusLengths", "fasta", "locfile", "missingData", "vcf"
+outputType = sys.argv[12] # what type of output. Options: "locusLengths", "fasta", "locfile", "missing", "vcf"
 
 # variable initialization
 minSnpQUAL = 0 # minimum QUAL in .vcf to include a snp. I decided to role without this filter (that's why it's 0)
@@ -503,13 +503,13 @@ for scaffold in scaffoldOrder:
                                     if outputType == "fasta":
                                         seq1[posCounter] = reference[scaffold][position] # giving non-"N" placeholder to fasta for ms-conversion
                                         seq2[posCounter] = reference[scaffold][position]
-                                    elif outputType == "missingData":
+                                    elif outputType == "missing":
                                         pass # leaving as Ns
                             else:
                                 if outputType == "fasta":
                                     seq1[posCounter] = reference[scaffold][position]
                                     seq2[posCounter] = reference[scaffold][position]
-                                elif outputType == "missingData":
+                                elif outputType == "missing":
                                     pass # if outputting for missing data analysis, then leave the N's in.
                             posCounter += 1
                         if allMissingData == False: # if at least one base is covered for this sample

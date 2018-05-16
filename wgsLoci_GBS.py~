@@ -497,13 +497,13 @@ for scaffold in scaffoldOrder:
                                     if outputType == "fasta":
                                         seq1[posCounter] = reference[scaffold][position] # giving non-"N" placeholder to fasta for ms-conversion
                                         seq2[posCounter] = reference[scaffold][position]
-                                    elif outputType == "missing":
+                                    elif outputType == "missingData":
                                         pass # leaving as Ns
                             else:
                                 if outputType == "fasta":
                                     seq1[posCounter] = reference[scaffold][position]
                                     seq2[posCounter] = reference[scaffold][position]
-                                elif outputType == "missing":
+                                elif outputType == "missingData":
                                     pass # if outputting for missing data analysis, then leave the N's in.
                             posCounter += 1
                         if allMissingData == False: # if at least one base is covered for this sample
